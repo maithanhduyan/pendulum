@@ -62,10 +62,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (savedBestGenome) {
     // Nếu có genome đã lưu, khởi tạo Neat với genome này
     neat = new Neat(6, 2, null, {
-      popsize: GAMES,
-      elitism: 5,
-      mutationRate: 0.8,
-      mutationAmount: 5
+      popsize: GAMES, // Số lượng quần thể/dân số
+      elitism: 5, // Giới tinh hoa
+      mutationRate: 0.8, // Tỷ lệ đột biến
+      mutationAmount: 5  // Tăng cường đột biến
     });
     neat.population[0] = savedBestGenome;
   } else {

@@ -56,12 +56,27 @@ document.addEventListener('DOMContentLoaded', () => {
   /**
    * Tạo neat
    */
-  const neat = new Neat(6, 2, null, {
-    popsize: GAMES, // Dân số
-    elitism: 5, // Giới tinh hoa
-    mutationRate: 0.8,      // Tăng tỷ lệ đột biến
-    mutationAmount: 5       // Tăng cường độ đột biến
-  })
+  // Thay thế phần khởi tạo Neat bằng code này
+  let neat;
+  const savedBestGenome = loadBestGenome();
+  if (savedBestGenome) {
+    // Nếu có genome đã lưu, khởi tạo Neat với genome này
+    neat = new Neat(6, 2, null, {
+      popsize: GAMES,
+      elitism: 5,
+      mutationRate: 0.8,
+      mutationAmount: 5
+    });
+    neat.population[0] = savedBestGenome;
+  } else {
+    // Khởi tạo Neat bình thường nếu không có genome lưu trữ
+    neat = new Neat(6, 2, null, {
+      popsize: GAMES,
+      elitism: 5,
+      mutationRate: 0.8,
+      mutationAmount: 5
+    });
+  }
 
   // Khởi tạo score cho genome
   neat.population.forEach(genome => genome.score = 0);
@@ -76,16 +91,34 @@ document.addEventListener('DOMContentLoaded', () => {
     gamsize: GAMES,
     score: game => game.score, // mỗi game có thuộc tính điểm: score
     onEndGeneration: ({ generation, max, avg, min }) => {
+
       // Xử lý các công việc cần làm sau khi kết thúc thế hệ,
-      // ví dụ: cập nhật UI, lưu trữ dữ liệu, thực hiện đột biến...
-      // Sau đó bắt đầu thế hệ mới:
       if (max > highestScore) {
+
+        // Ghi điểm cao nhất
         highestScore = max
+
+        // Lấy genome tốt nhất và lưu vào localStorage
+        const bestGenome = neat.getFittest();
+        localStorage.setItem('bestGenome', JSON.stringify(bestGenome.toJSON()));
+        // console.log('Đã lưu genome tốt nhất vào localStorage');
       }
+
       console.log(`Thế hệ ${generation} đã kết thúc.\n Điểm số cao nhất: ${highestScore}`);
+      // Sau đó bắt đầu thế hệ mới:
       runner.startGeneration();
     }
   })
+
+  function loadBestGenome() {
+    const savedGenome = localStorage.getItem('bestGenome');
+    if (savedGenome) {
+      const genomeData = JSON.parse(savedGenome);
+      const genome = neataptic.Network.fromJSON(genomeData);
+      return genome;
+    }
+    return null;
+  }
 
   /**
  * Khởi tạo một thế hệ đầu tiên 

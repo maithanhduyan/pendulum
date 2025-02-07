@@ -1,0 +1,13 @@
+{
+  "liveServer.settings.port": 5500,
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "node_modules": true
+  },
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+}

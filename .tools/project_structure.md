@@ -1,6 +1,8 @@
 # Cấu trúc Dự án như sau:
 
 ```
+├── LICENSE
+├── favicon.ico
 ├── index.html
 └── src
     ├── constants.js
@@ -26,6 +28,7 @@
 </head>
 
 <body>
+    <div id="games_container"></div>
 
   <script src="lib/neataptic.min.js"></script>
   <script src="src/constants.js"></script>
@@ -48,7 +51,7 @@
 /**
  * Số lượng game
  * Là số lượng mỗi thế hệ tạo ra 50 game để đào tạo
- **/ 
+ **/
 const GAMES = 50
 
 /**
@@ -59,7 +62,18 @@ const GRAVITY = 9.81
 /**
  * Hệ số ma sát không khí (s⁻¹)
  */
-const DAMPING = 0.5; 
+const DAMPING = 0.5;
+
+/**
+ * Tần số tối đa (Hz)
+ */
+const MAX_FREQUENCY = 12.5 
+
+/**
+ * Biên độ dao động (mét).
+ * Amplitude of oscillation
+ */
+const MAX_AMPLITUDE = 0.5 
 ```
 
  ## ../src\game.js
@@ -72,7 +86,7 @@ const DAMPING = 0.5;
 
 class Game {
 
-    constructor({ screen, score, onGameOver, genome }) {
+    constructor({ screen, score, onGameOver, brain }) {
 
         this.canvas = document.getElementById(screen.id);
         this.ctx = this.canvas.getContext('2d');
@@ -88,19 +102,9 @@ class Game {
         /**
          * Bộ gene
          */
-        this.genome = genome;
+        this.brain = brain;
 
-        this.init()
-    }
-
-    /**
-     * Khởi tạo môi trường game
-    */
-    init() {
-        // console.log(`init()`);
-        this.pendulum.A = 0.3
-        this.pendulum.A = 0.3
-
+        this.lastRevolution = 0;
     }
 
     /**
@@ -111,9 +115,12 @@ class Game {
     updateGameStatus(deltaTime) {
         this.pendulum.update(deltaTime)
 
+        // RPM
+        const rpmDisplay = Math.round(Math.abs(this.pendulum.thetaDot) / (2 * Math.PI) * 60);
+
         // Thu thập dữ liệu đầu vào
         const inputs = [
-            this.pendulum.theta,
+            this.pendulum.theta, //
             this.pendulum.thetaDot,
             this.pendulum.A,
             this.pendulum.F,
@@ -122,64 +129,90 @@ class Game {
         ];
 
         // Kích hoạt mạng neural
-        const outputs = this.genome.activate(inputs);
+        const outputs = this.brain.activate(inputs);
+
+        // Tính toán điều khiển
+        const a = outputs[0] * MAX_AMPLITUDE // Biên độ từ 0 đến 2
+        const freq = outputs[1] * MAX_FREQUENCY // Tần số từ 0.1 đến 5.1 Hz
+
+        // Điều kiện game over. Ngăn ngừa A.I điều khiển sai để giảm thiểu thiệt hại.
+        if (a < 0.01 || a > MAX_AMPLITUDE || this.score < -10 || freq > MAX_FREQUENCY || rpmDisplay == 0) {
+            this.status = 'GAME_OVER';
+        }
 
         // Điều khiển con lắc
         this.pendulum.control({
-            A: outputs[0], // Biên độ 
-            F: outputs[1] * 2 + 0.1 // Tần số
+            A: a,      // Biên độ
+            F: freq // Tần số
         });
-
-        // --- Ghi điểm theo quy tắc ---
-        // Tính số vòng quay hiện tại dựa vào tích lũy góc theta (mỗi 2π rad là 1 vòng)
-        let currentRevolution = Math.floor(this.pendulum.theta / (2 * Math.PI));
-        if (currentRevolution > this.lastRevolution) {
-            // Xác định số vòng hoàn thành kể từ lần kiểm tra trước
-            let revsCompleted = currentRevolution - this.lastRevolution;
-
-            // Tính tốc độ chuyển động hiện tại (RPM)
-            let rpm = Math.abs(this.pendulum.thetaDot) / (2 * Math.PI) * 60;
-
-            // Với mỗi vòng hoàn thành, ghi điểm theo tốc độ (RPM)
-            for (let i = 0; i < revsCompleted; i++) {
-                let pointsAwarded = 1;  // Mặc định 1 điểm
-                if (rpm >= 100 && rpm <= 700) {
-                    pointsAwarded = 10;
-                } else if (rpm >= 701 && rpm <= 800) {
-                    pointsAwarded = 20;
-                }
-                this.score += pointsAwarded;
-            }
-
-            // Cập nhật lại số vòng quay đã xử lý
-            this.lastRevolution = currentRevolution;
-        }
 
         // Tính FPS từ deltaTime (nếu deltaTime != 0)
         const fps = Math.round(1 / deltaTime);
 
-        // RPM
-        let rpmDisplay = Math.round(Math.abs(this.pendulum.thetaDot) / (2 * Math.PI) * 60);
+
         // Hiển thị thông tin Score và FPS lên canvas
         this.ctx.font = "20px Arial";
         this.ctx.fillStyle = "#000";
         this.ctx.fillText(`Score: ${Math.floor(this.score)}`, 10, 30);
         this.ctx.fillText(`FPS: ${fps}`, 10, 60);
-        this.ctx.fillText(`A: ${outputs[0]}`, 10, 90);
-        this.ctx.fillText(`Freq: ${outputs[1]}`, 10, 120);
+        this.ctx.fillText(`A: ${a}`, 10, 90);
+        this.ctx.fillText(`Freq: ${freq}`, 10, 120);
         this.ctx.fillText(`RPM: ${rpmDisplay}`, 10, 150);
 
-        // Cập nhật trạng thái game, ví dụ: tính toán vị trí, góc lệch của con lắc, cập nhật điểm số, v.v.
-        // Ví dụ đơn giản: tăng điểm số theo thời gian trôi qua
-        this.score -= deltaTime;
 
-        // Nếu có điều kiện kết thúc game, cập nhật trạng thái và gọi onGameOver nếu cần
-        // Kiểm tra điều kiện kết thúc game:
-        if (this.score < -5) {
-            this.status = 'GAME_OVER';
+        // Hiển thị góc lệch (đổi từ radian sang độ)
+        let angleInDegrees = Math.round(this.pendulum.theta * (180 / Math.PI));
+        this.ctx.fillText(`Angle: ${Math.round(angleInDegrees / 360)} °`, 10, 180);
+
+        // --- Ghi điểm theo quy tắc ---
+        // Tính RPM mục tiêu
+        const targetRPM = 700;
+        // Tính điểm dựa trên khoảng cách đến RPM mục tiêu
+        const rpmDifference = Math.abs(rpmDisplay - targetRPM);
+        // Điểm tỷ lệ nghịch với khoảng cách (tối đa khi đạt mục tiêu)
+        this.score += (1 - rpmDifference / targetRPM) * deltaTime;
+
+        // --- Thưởng thêm nếu đạt hoặc vượt mục tiêu ---
+        if (rpmDisplay == 100) {
+            this.score += 10;
+        }
+        if (rpmDisplay == 200) {
+            this.score += 10;
+        }
+        if (rpmDisplay == 300) {
+            this.score += 10;
+        }
+        if (rpmDisplay == 400) {
+            this.score += 10;
+        }
+        if (rpmDisplay == 500) {
+            this.score += 10;
+        }
+        if (rpmDisplay == 600) {
+            this.score += 10;
+        }
+        if (rpmDisplay >= targetRPM) {
+            this.score += 10;
+        }
+
+        // --- Phạt nhẹ nếu RPM quá thấp ---
+        // Số vòng/ phút không như kỳ vọng
+        if (rpmDisplay < 400) {
+            this.score -= deltaTime * 10;
+        }
+
+        // Biên độ cao quá không ổn định
+        if (a > 0.4) {
+            this.score -= deltaTime * 10;
+        }
+
+        // --- Kiểm tra điều kiện kết thúc game ---
+        if (this.status == 'GAME_OVER') {
             this.ctx.font = "50px Arial";
             this.ctx.fillStyle = "#800";
             this.ctx.fillText(`GAME OVER`, this.centerScreen.X, this.centerScreen.Y);
+
+            this.brain.score = this.score;
             if (this.onGameOver) {
                 this.onGameOver();
             }
@@ -226,28 +259,10 @@ const Neat = neataptic.Neat
 const Config = neataptic.Config
 Config.warnings = false
 
-/**
- * Dân số 
- */
-const POPULATIONS = 50
-
-/**
- * Tạo neat
- */
-const neat = new Neat(6, 2, null, {
-  popsize: POPULATIONS, // Dân số
-  elitism: 5, // Giới tinh hoa
-  mutationRate: 0.5, // Tỉ lệ đột biến
-  mutationAmount: 3 // Hàm lượng đột biến
-})
-
-/**
- * Tất cả màn hình Games
- */
-let screens = []
 
 // Chờ DOM được tải xong (nếu script không được đặt ở cuối body thì cần dùng DOMContentLoaded)
 document.addEventListener('DOMContentLoaded', () => {
+
   // Tạo một container để chứa các canvas
   const container = document.createElement('div');
   container.id = 'canvasContainer';
@@ -255,7 +270,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // Áp dụng CSS cho container để hiển thị theo dạng lưới: 10 cột
   container.style.display = 'grid';
   container.style.gridTemplateColumns = 'repeat(10, auto)';
-  container.style.gap = '10px'; // khoảng cách giữa các canvas (tuỳ chọn)
+  container.style.gap = '2px'; // khoảng cách giữa các canvas (tuỳ chọn)
+
+  /**
+ * Tất cả màn hình Games
+ */
+  let screens = []
+
+  /**
+   * Lưu trữ điểm  số cao nhất
+   */
+  let highestScore = 0
 
   // Số hàng: 5, số cột: 10 (tổng cộng 50 canvas)
   for (let row = 0; row < 5; row++) {
@@ -281,7 +306,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Thêm container vào body của trang web
-  document.body.appendChild(container);
+  // document.body.appendChild(container);
+  document.getElementById('games_container').appendChild(container)
+
+  /**
+   * Tạo neat
+   */
+  const neat = new Neat(6, 2, null, {
+    popsize: GAMES, // Dân số
+    elitism: 5, // Giới tinh hoa
+    mutationRate: 0.8,      // Tăng tỷ lệ đột biến
+    mutationAmount: 5       // Tăng cường độ đột biến
+  })
+
+  // Khởi tạo score cho genome
+  neat.population.forEach(genome => genome.score = 0);
 
   /**
  * Tạo một luồng runner để chạy game
@@ -290,19 +329,22 @@ document.addEventListener('DOMContentLoaded', () => {
     neat,
     screens,
     games: GAMES,
-    gamsize: POPULATIONS,
+    gamsize: GAMES,
     score: game => game.score, // mỗi game có thuộc tính điểm: score
-    onEndGeneration: (generation, bestScore) => {
-      console.log(`Thế hệ ${generation} đã kết thúc. Điểm số cao nhất: ${bestScore}`);
+    onEndGeneration: ({ generation, max, avg, min }) => {
       // Xử lý các công việc cần làm sau khi kết thúc thế hệ,
       // ví dụ: cập nhật UI, lưu trữ dữ liệu, thực hiện đột biến...
       // Sau đó bắt đầu thế hệ mới:
+      if (max > highestScore) {
+        highestScore = max
+      }
+      console.log(`Thế hệ ${generation} đã kết thúc.\n Điểm số cao nhất: ${highestScore}`);
       runner.startGeneration();
     }
   })
 
   /**
- * Khởi tạo một thế hệ mới 
+ * Khởi tạo một thế hệ đầu tiên 
  **/
   runner.startGeneration()
 });
@@ -327,7 +369,7 @@ class Pendulum {
 
         // --- Thông số hiển thị ---
         this.centerX = canvas.width / 2; // Vị trí theo trục x của điểm treo khi không dao động
-        this.scale = 300;       // Tỉ lệ chuyển đổi từ mét sang pixel (1 m = 200 pixel)
+        this.scale = 200;       // Tỉ lệ chuyển đổi từ mét sang pixel (1 m = 200 pixel)
         this.pivotY = canvas.width / 2;      // Vị trí theo trục y của điểm treo (pixel)
 
         /**
@@ -376,7 +418,14 @@ class Pendulum {
     /**
      * Đặt lại thông số ban đầu cho con lắc
      */
-    reset() { }
+    reset() {
+        this.theta = 0;
+        this.thetaDot = 0;
+        this.time = 0;
+        this.A = 0;
+        this.F = 0;
+        this.omega = 0;
+    }
 
     draw(t) {
 
@@ -442,6 +491,7 @@ class Pendulum {
         // Điều khiển 
         this.A = A
         this.F = F
+        this.omega = 2 * Math.PI * this.F;
     }
 
 }
@@ -491,8 +541,6 @@ class Runner {
                         onGameOver: () => this.endGeneration()
                     })
             )
-
-
         }
 
     }
@@ -501,14 +549,16 @@ class Runner {
      * Bắt đầu tất cả các game
      */
     startGeneration() {
-        // Reset số lượng game đã hoàn thành
-        this.gamesFinished = 0;
+        // console.log(` Thế hệ game thứ ${this.neat.generation}`);
+        
+        this.gamesFinished = 0
 
         // Khởi tạo và bắt đầu vòng lặp cho từng game
-        this.games.forEach(game => {
-            // game.init();   // Khởi tạo các thông số, lấy context của canvas, v.v.
-            game.start();  // Bắt đầu vòng lặp game (ví dụ sử dụng requestAnimationFrame)
-        });
+        for (let i = 0; i < this.games.length; i++) {
+            this.games[i].brain = this.neat.population[i]
+            this.games[i].brain.score = 0
+            this.games[i].start()
+        }
 
     }
 
@@ -521,38 +571,35 @@ class Runner {
      * Bắt đầu chu kỳ của thế hệ mới
      */
     endGeneration() {
-        // --- Xử lý khi một game kết thúc ---
+
+        // Kiểm tra xem tất cả game kết thúc hết chưa
         if (this.gamesFinished + 1 < this.games.length) {
             this.gamesFinished++
             return
         }
 
-        // --- Xử lý khi tất cả game kết thúc ---
-        // this.neat.sort()
+        this.neat.sort()
 
-        // this.onEndGeneration({
-        //     generation: this.neat.generation,
-        //     max: this.neat.getFittest().score,
-        //     avg: Math.round(this.neat.getAverage()),
-        //     min: this.neat.population[this.neat.popsize - 1].score
-        // })
+        this.onEndGeneration({
+            generation: this.neat.generation,
+            max: this.neat.getFittest().score,
+            avg: Math.round(this.neat.getAverage()),
+            min: this.neat.population[this.neat.popsize - 1].score
+        })
 
-        // const newGeneration = []
+        const newGeneration = []
 
-        // for (let i = 0; i < this.neat.elitism; i++) {
-        //     newGeneration.push(this.neat.population[i])
-        // }
+        for (let i = 0; i < this.neat.elitism; i++) {
+            newGeneration.push(this.neat.population[i])
+        }
+        for (let i = 0; i < this.neat.popsize - this.neat.elitism; i++) {
+            newGeneration.push(this.neat.getOffspring())
+        }
 
-        // for (let i = 0; i < this.neat.popsize - this.neat.elitism; i++) {
-        //     newGeneration.push(this.neat.getOffspring())
-        // }
-
-        // this.neat.population = newGeneration
-        // this.neat.mutate()
-        // this.neat.generation++
-        // this.startGeneration()
-
-
+        this.neat.population = newGeneration
+        this.neat.mutate()
+        this.neat.generation++
+        this.startGeneration()
     }
 }
 ```

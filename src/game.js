@@ -5,7 +5,7 @@
 
 class Game {
 
-    constructor({ screen, score, onGameOver, genome }) {
+    constructor({ screen, score, onGameOver, brain }) {
 
         this.canvas = document.getElementById(screen.id);
         this.ctx = this.canvas.getContext('2d');
@@ -21,7 +21,7 @@ class Game {
         /**
          * Bộ gene
          */
-        this.genome = genome;
+        this.brain = brain;
 
         this.lastRevolution = 0;
     }
@@ -34,9 +34,12 @@ class Game {
     updateGameStatus(deltaTime) {
         this.pendulum.update(deltaTime)
 
+        // RPM
+        const rpmDisplay = Math.round(Math.abs(this.pendulum.thetaDot) / (2 * Math.PI) * 60);
+
         // Thu thập dữ liệu đầu vào
         const inputs = [
-            this.pendulum.theta,
+            this.pendulum.theta, //
             this.pendulum.thetaDot,
             this.pendulum.A,
             this.pendulum.F,
@@ -45,50 +48,90 @@ class Game {
         ];
 
         // Kích hoạt mạng neural
-        const outputs = this.genome.activate(inputs);
+        const outputs = this.brain.activate(inputs);
+
+        // Tính toán điều khiển
+        const a = outputs[0] * MAX_AMPLITUDE // Biên độ từ 0 đến 2
+        const freq = outputs[1] * MAX_FREQUENCY // Tần số từ 0.1 đến 5.1 Hz
+
+        // Điều kiện game over. Ngăn ngừa A.I điều khiển sai để giảm thiểu thiệt hại.
+        if (a < 0.01 || a > MAX_AMPLITUDE || this.score < -10 || freq > MAX_FREQUENCY || rpmDisplay == 0) {
+            this.status = 'GAME_OVER';
+        }
 
         // Điều khiển con lắc
         this.pendulum.control({
-            A: outputs[0], // Biên độ 
-            F: outputs[1] * 2 + 0.1 // Tần số
+            A: a,      // Biên độ
+            F: freq // Tần số
         });
 
         // Tính FPS từ deltaTime (nếu deltaTime != 0)
         const fps = Math.round(1 / deltaTime);
 
-        // RPM
-        let rpmDisplay = Math.round(Math.abs(this.pendulum.thetaDot) / (2 * Math.PI) * 60);
+
         // Hiển thị thông tin Score và FPS lên canvas
         this.ctx.font = "20px Arial";
         this.ctx.fillStyle = "#000";
         this.ctx.fillText(`Score: ${Math.floor(this.score)}`, 10, 30);
         this.ctx.fillText(`FPS: ${fps}`, 10, 60);
-        this.ctx.fillText(`A: ${outputs[0]}`, 10, 90);
-        this.ctx.fillText(`Freq: ${outputs[1]}`, 10, 120);
+        this.ctx.fillText(`A: ${a}`, 10, 90);
+        this.ctx.fillText(`Freq: ${freq}`, 10, 120);
         this.ctx.fillText(`RPM: ${rpmDisplay}`, 10, 150);
 
 
         // Hiển thị góc lệch (đổi từ radian sang độ)
         let angleInDegrees = Math.round(this.pendulum.theta * (180 / Math.PI));
-        this.ctx.fillText(`Angle: ${angleInDegrees} °`, 10, 180);
+        this.ctx.fillText(`Angle: ${Math.round(angleInDegrees / 360)} °`, 10, 180);
 
         // --- Ghi điểm theo quy tắc ---
-        // điểm dựa trên thời gian tồn tại
-        // Dựa vào số vòng quay
-        if (angleInDegrees > 360 && rpmDisplay > 100) {
-            this.score += deltaTime * 1
-        } else {
+        // Tính RPM mục tiêu
+        const targetRPM = 700;
+        // Tính điểm dựa trên khoảng cách đến RPM mục tiêu
+        const rpmDifference = Math.abs(rpmDisplay - targetRPM);
+        // Điểm tỷ lệ nghịch với khoảng cách (tối đa khi đạt mục tiêu)
+        this.score += (1 - rpmDifference / targetRPM) * deltaTime;
 
-            this.score -= deltaTime * 1;
+        // --- Thưởng thêm nếu đạt hoặc vượt mục tiêu ---
+        if (rpmDisplay == 100) {
+            this.score += 10;
+        }
+        if (rpmDisplay == 200) {
+            this.score += 10;
+        }
+        if (rpmDisplay == 300) {
+            this.score += 10;
+        }
+        if (rpmDisplay == 400) {
+            this.score += 10;
+        }
+        if (rpmDisplay == 500) {
+            this.score += 10;
+        }
+        if (rpmDisplay == 600) {
+            this.score += 10;
+        }
+        if (rpmDisplay >= targetRPM) {
+            this.score += 10;
         }
 
-        // Nếu có điều kiện kết thúc game, cập nhật trạng thái và gọi onGameOver nếu cần
-        // Kiểm tra điều kiện kết thúc game:
-        if (this.score < -10) {
-            this.status = 'GAME_OVER';
+        // --- Phạt nhẹ nếu RPM quá thấp ---
+        // Số vòng/ phút không như kỳ vọng
+        if (rpmDisplay < 400) {
+            this.score -= deltaTime * 10;
+        }
+
+        // Biên độ cao quá không ổn định
+        if (a > 0.4) {
+            this.score -= deltaTime * 10;
+        }
+
+        // --- Kiểm tra điều kiện kết thúc game ---
+        if (this.status == 'GAME_OVER') {
             this.ctx.font = "50px Arial";
             this.ctx.fillStyle = "#800";
             this.ctx.fillText(`GAME OVER`, this.centerScreen.X, this.centerScreen.Y);
+
+            this.brain.score = this.score;
             if (this.onGameOver) {
                 this.onGameOver();
             }

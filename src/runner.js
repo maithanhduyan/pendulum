@@ -39,8 +39,6 @@ class Runner {
                         onGameOver: () => this.endGeneration()
                     })
             )
-
-
         }
 
     }
@@ -49,16 +47,16 @@ class Runner {
      * Bắt đầu tất cả các game
      */
     startGeneration() {
-        console.log(` Thế hệ game thứ ${this.neat.generation}`);
-
-        // Reset số lượng game đã hoàn thành
-        this.gamesFinished = 0;
+        // console.log(` Thế hệ game thứ ${this.neat.generation}`);
+        
+        this.gamesFinished = 0
 
         // Khởi tạo và bắt đầu vòng lặp cho từng game
-        this.games.forEach(game => {
-            // Bắt đầu vòng lặp game
-            game.start();
-        });
+        for (let i = 0; i < this.games.length; i++) {
+            this.games[i].brain = this.neat.population[i]
+            this.games[i].brain.score = 0
+            this.games[i].start()
+        }
 
     }
 
@@ -75,12 +73,9 @@ class Runner {
         // Kiểm tra xem tất cả game kết thúc hết chưa
         if (this.gamesFinished + 1 < this.games.length) {
             this.gamesFinished++
-            console.log(`Kiểm tra xem tất cả game kết thúc hết chưa`);
-
             return
         }
-        console.log(`OK. Tất cả game đều kết thúc.`);
-        
+
         this.neat.sort()
 
         this.onEndGeneration({

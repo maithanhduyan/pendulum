@@ -1,5 +1,6 @@
-
-# Sample pendulum
+# Pendulum
+[![Documentation Status](https://github.com/maithanhduyan/pendulum/actions/workflows/mdbook.yml/badge.svg)](https://github.com/maithanhduyan/pendulum/actions)
+# Simple pendulum
 
 ```javascript
 

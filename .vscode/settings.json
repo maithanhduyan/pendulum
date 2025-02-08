@@ -1,5 +1,52 @@
 {
+  // Cấu hình cho Material Icon Theme
+  "workbench.iconTheme": "material-icon-theme",
+  // Cấu hình cho Color Highlight (tùy thuộc vào extension, ví dụ bật hiển thị thanh màu)
+  "color-highlight.markRuler": true,
+  // Cấu hình cho Bracket Pair Color (ví dụ với Bracket Pair Colorizer 2)
+  "bracketPairColorizer.depreciation-notice": false,
+  "bracketPairColorizer.forceUniqueOpeningColor": true,
+  //
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active",
+  // Cấu hình cho ESLint
+  "eslint.enable": true,
+  "eslint.run": "onSave", // Kiểm tra lỗi khi lưu file
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "html"
+  ],
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  // Cấu hình cho Git Graph (thường phần cài đặt này không cần thay đổi nhiều)
+  "git-graph.showGitOutput": true,
+  // Cấu hình cho IntelliCode (hầu hết các cài đặt tự động được cấu hình khi cài extension)
+  "editor.suggestSelection": "first",
+  // Cấu hình cho Live Server
   "liveServer.settings.port": 5500,
+  "liveServer.settings.root": "/",
+  "liveServer.settings.ignoreFiles": ["**/node_modules/**", ".vscode/**"],
+  // Cấu hình cho Markdown Preview Enhanced (tùy chọn, ví dụ cho hiển thị PDF)
+  "markdown-preview-enhanced.usePandocParser": true,
+  // Cấu hình cho Prettier - Code Formatter
+  "prettier.singleQuote": true,
+  "prettier.trailingComma": "all",
+  "prettier.tabWidth": 2,
+  "prettier.useTabs": false,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "editor.formatOnSave": true,
+  // Cấu hình cho YAML (đảm bảo validate và hỗ trợ schema nếu cần)
+  "yaml.validate": true,
   "files.exclude": {
     "**/.git": true,
     "**/.svn": true,
@@ -10,4 +57,11 @@
   },
   "editor.tabSize": 2,
   "editor.insertSpaces": true,
+  "github.copilot.nextEditSuggestions.enabled": true,
+  "github.copilot.enable": {
+    "*": false,
+    "plaintext": false,
+    "markdown": false,
+    "scminput": false
+  }
 }

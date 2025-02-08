@@ -48,7 +48,7 @@ class Runner {
      */
     startGeneration() {
         // console.log(` Thế hệ game thứ ${this.neat.generation}`);
-        
+
         this.gamesFinished = 0
 
         // Khởi tạo và bắt đầu vòng lặp cho từng game
@@ -59,7 +59,6 @@ class Runner {
         }
 
     }
-
 
     /**
      * Kiểm tra kết thúc game
@@ -87,15 +86,27 @@ class Runner {
 
         const newGeneration = []
 
+        // Tạo thế hệ mới
         for (let i = 0; i < this.neat.elitism; i++) {
             newGeneration.push(this.neat.population[i])
         }
+
+        // Kế thừa genome từ thế hệ tinh hoa 
         for (let i = 0; i < this.neat.popsize - this.neat.elitism; i++) {
             newGeneration.push(this.neat.getOffspring())
         }
 
+        // Thế hệ kế thừa tinh hoa từ thế hệ cũ
         this.neat.population = newGeneration
+
+        // Đột biến 
         this.neat.mutate()
+
+        // Tối ưu genome
+        // for (let i = 0; i < this.neat.popsize; i++) {
+        //     this.neat.population[i] = this.evaluateGenome(this.neat.population[i])
+        // }
+
         this.neat.generation++
         this.startGeneration()
     }

@@ -37,7 +37,7 @@ jobs:
           source $HOME/.cargo/env
           rustup update
           # Cài đặt mdBook với phiên bản được chỉ định
-          cargo install --version ${MDBOOK_VERSION} mdbook
+          cargo install --version ${MDBOOK_VERSION} mdbook mdbook-mermaid
 
       - name: Build mdBook site
         working-directory: docs

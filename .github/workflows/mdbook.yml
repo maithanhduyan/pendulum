@@ -1,0 +1,62 @@
+name: Deploy mdBook Site to GitHub Pages
+
+on:
+  # Chạy khi có push trên nhánh chính và có thay đổi trong thư mục docs
+  push:
+    branches: ["main"]
+    paths:
+      - "docs/**"
+
+  # Cho phép chạy thủ công từ giao diện Actions
+  workflow_dispatch:
+
+# Cấu hình quyền cho GITHUB_TOKEN
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Giới hạn chỉ một deployment chạy cùng lúc
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # Job xây dựng tài liệu
+  build:
+    runs-on: ubuntu-latest
+    env:
+      MDBOOK_VERSION: 0.4.36
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust and mdBook
+        run: |
+          # Cài đặt Rust qua rustup
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+          source $HOME/.cargo/env
+          rustup update
+          # Cài đặt mdBook với phiên bản được chỉ định
+          cargo install --version ${MDBOOK_VERSION} mdbook
+
+      - name: Build mdBook site
+        working-directory: docs
+        run: mdbook build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Vì mdBook khi build sẽ tạo ra thư mục "book" bên trong docs
+          path: docs/book
+
+  # Job triển khai tài liệu lên GitHub Pages
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

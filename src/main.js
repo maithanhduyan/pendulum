@@ -17,8 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
   container.style.gap = '2px'; // khoảng cách giữa các canvas (tuỳ chọn)
 
   /**
- * Tất cả màn hình Games
- */
+   * Tất cả màn hình Games
+   */
   let screens = []
 
   /**
@@ -50,13 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Thêm container vào body của trang web
-  // document.body.appendChild(container);
   document.getElementById('games_container').appendChild(container)
 
   /**
    * Tạo neat
    */
-  // Thay thế phần khởi tạo Neat bằng code này
   let neat;
   const savedBestGenome = loadBestGenome();
   if (savedBestGenome) {
@@ -104,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // console.log('Đã lưu genome tốt nhất vào localStorage');
       }
 
-      console.log(`Thế hệ ${generation} đã kết thúc.\n Điểm số cao nhất: ${highestScore}`);
+      console.log(`Thế hệ ${generation} đã kết thúc.\nĐiểm số cao nhất: ${highestScore}`);
       // Sau đó bắt đầu thế hệ mới:
       runner.startGeneration();
     }

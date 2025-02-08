@@ -1,0 +1,14 @@
+[book]
+title = "Pendulum AI Documentation"
+authors = ["Mai Thành Duy An"]
+language = "vi"
+src = "src"
+
+[build]
+build-dir = "book"
+
+[server]
+port = 5001  
+host = "127.0.0.1"
+#host = "0.0.0.0"  # Cho phép truy cập từ mạng
+#websocket-port = 5002  # Port cho Hot Reload

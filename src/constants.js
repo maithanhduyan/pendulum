@@ -3,7 +3,7 @@
  */
 
 /**
- * Số lượng game
+ * Số lượng game.
  * Là số lượng mỗi thế hệ tạo ra 50 game để đào tạo
  **/
 const GAMES = 50
@@ -21,7 +21,7 @@ const DAMPING = 0.5;
 /**
  * Tần số tối đa (Hz)
  */
-const MAX_FREQUENCY = 12.5 
+const MAX_FREQUENCY = 12.5
 
 /**
  * Biên độ dao động (mét).
